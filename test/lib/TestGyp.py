@@ -282,7 +282,6 @@ class TestGypBase(TestCommon.TestCommon):
     # TODO:  --depth=. works around Chromium-specific tree climbing.
     depth = kw.pop('depth', '.')
     run_args = ['--depth='+depth]
-    run_args.extend(['--format='+f for f in self.formats]);
     run_args.append(gyp_file)
     if self.no_parallel:
       run_args += ['--no-parallel']

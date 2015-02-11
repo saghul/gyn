@@ -13,6 +13,7 @@ import shlex
 import sys
 import traceback
 from gyp.common import GypError
+from gyp.generator import ninja
 
 # Default debug modes for GYP
 debug = {}
@@ -47,7 +48,7 @@ def FindBuildFiles():
   return build_files
 
 
-def Load(build_files, format, default_variables={},
+def Load(build_files, default_variables={},
          includes=[], depth='.', params=None, check=False,
          circular_check=True):
   """
@@ -59,48 +60,24 @@ def Load(build_files, format, default_variables={},
   if params is None:
     params = {}
 
-  flavor = None
-  if '-' in format:
-    format, params['flavor'] = format.split('-', 1)
-
   default_variables = copy.copy(default_variables)
 
   # Default variables provided by this program and its modules should be
   # named WITH_CAPITAL_LETTERS to provide a distinct "best practice" namespace,
   # avoiding collisions with user and automatic variables.
-  default_variables['GENERATOR'] = format
+  default_variables['GENERATOR'] = 'ninja'
 
-  # Format can be a custom python file, or by default the name of a module
-  # within gyp.generator.
-  if format.endswith('.py'):
-    generator_name = os.path.splitext(format)[0]
-    path, generator_name = os.path.split(generator_name)
-
-    # Make sure the path to the custom generator is in sys.path
-    # Don't worry about removing it once we are done.  Keeping the path
-    # to each generator that is used in sys.path is likely harmless and
-    # arguably a good idea.
-    path = os.path.abspath(path)
-    if path not in sys.path:
-      sys.path.insert(0, path)
-  else:
-    generator_name = 'gyp.generator.' + format
-
-  # These parameters are passed in order (as opposed to by key)
-  # because ActivePython cannot handle key parameters to __import__.
-  generator = __import__(generator_name, globals(), locals(), generator_name)
+  generator = ninja
   for (key, val) in generator.generator_default_variables.items():
     default_variables.setdefault(key, val)
 
   # Give the generator the opportunity to set additional variables based on
   # the params it will receive in the output phase.
-  if getattr(generator, 'CalculateVariables', None):
-    generator.CalculateVariables(default_variables, params)
+  generator.CalculateVariables(default_variables, params)
 
   # Give the generator the opportunity to set generator_input_info based on
   # the params it will receive in the output phase.
-  if getattr(generator, 'CalculateGeneratorInputInfo', None):
-    generator.CalculateGeneratorInputInfo(params)
+  generator.CalculateGeneratorInputInfo(params)
 
   # Fetch the generator specific info that gets fed to input, we use getattr
   # so we can default things and the generators only have to provide what
@@ -298,9 +275,6 @@ def gyp_main(args):
                     help='sets variable VAR to value VAL')
   parser.add_option('--depth', dest='depth', metavar='PATH', type='path',
                     help='set DEPTH gyp variable to a relative path to PATH')
-  parser.add_option('-f', '--format', dest='formats', action='append',
-                    env_name='GYP_GENERATORS', regenerate=False,
-                    help='output formats to generate')
   parser.add_option('-G', dest='generator_flags', action='append', default=[],
                     metavar='FLAG=VAL', env_name='GYP_GENERATOR_FLAGS',
                     help='sets generator flag FLAG to VAL')
@@ -364,24 +338,6 @@ def gyp_main(args):
 
   if home_dot_gyp and not os.path.exists(home_dot_gyp):
     home_dot_gyp = None
-
-  if not options.formats:
-    # If no format was given on the command line, then check the env variable.
-    generate_formats = []
-    if options.use_environment:
-      generate_formats = os.environ.get('GYP_GENERATORS', [])
-    if generate_formats:
-      generate_formats = re.split(r'[\s,]', generate_formats)
-    if generate_formats:
-      options.formats = generate_formats
-    else:
-      # Nothing in the variable, default based on platform.
-      if sys.platform == 'darwin':
-        options.formats = ['xcode']
-      elif sys.platform in ('win32', 'cygwin'):
-        options.formats = ['msvs']
-      else:
-        options.formats = ['make']
 
   if not options.generator_output and options.use_environment:
     g_o = os.environ.get('GYP_GENERATOR_OUTPUT')
@@ -482,39 +438,36 @@ def gyp_main(args):
   if DEBUG_GENERAL in gyp.debug.keys():
     DebugOutput(DEBUG_GENERAL, "generator_flags: %s", generator_flags)
 
-  # Generate all requested formats (use a set in case we got one format request
-  # twice)
-  for format in set(options.formats):
-    params = {'options': options,
-              'build_files': build_files,
-              'generator_flags': generator_flags,
-              'cwd': os.getcwd(),
-              'build_files_arg': build_files_arg,
-              'gyp_binary': sys.argv[0],
-              'home_dot_gyp': home_dot_gyp,
-              'parallel': options.parallel,
-              'root_targets': options.root_targets}
+  params = {'options': options,
+            'build_files': build_files,
+            'generator_flags': generator_flags,
+            'cwd': os.getcwd(),
+            'build_files_arg': build_files_arg,
+            'gyp_binary': sys.argv[0],
+            'home_dot_gyp': home_dot_gyp,
+            'parallel': options.parallel,
+            'root_targets': options.root_targets}
 
-    # Start with the default variables from the command line.
-    [generator, flat_list, targets, data] = Load(
-        build_files, format, cmdline_default_variables, includes, options.depth,
-        params, options.check, options.circular_check)
+  # Start with the default variables from the command line.
+  [generator, flat_list, targets, data] = Load(
+      build_files, cmdline_default_variables, includes, options.depth,
+      params, options.check, options.circular_check)
 
-    # TODO(mark): Pass |data| for now because the generator needs a list of
-    # build files that came in.  In the future, maybe it should just accept
-    # a list, and not the whole data dict.
-    # NOTE: flat_list is the flattened dependency graph specifying the order
-    # that targets may be built.  Build systems that operate serially or that
-    # need to have dependencies defined before dependents reference them should
-    # generate targets in the order specified in flat_list.
-    generator.GenerateOutput(flat_list, targets, data, params)
+  # TODO(mark): Pass |data| for now because the generator needs a list of
+  # build files that came in.  In the future, maybe it should just accept
+  # a list, and not the whole data dict.
+  # NOTE: flat_list is the flattened dependency graph specifying the order
+  # that targets may be built.  Build systems that operate serially or that
+  # need to have dependencies defined before dependents reference them should
+  # generate targets in the order specified in flat_list.
+  generator.GenerateOutput(flat_list, targets, data, params)
 
-    if options.configs:
-      valid_configs = targets[flat_list[0]]['configurations'].keys()
-      for conf in options.configs:
-        if conf not in valid_configs:
-          raise GypError('Invalid config specified via --build: %s' % conf)
-      generator.PerformBuild(data, options.configs, params)
+  if options.configs:
+    valid_configs = targets[flat_list[0]]['configurations'].keys()
+    for conf in options.configs:
+      if conf not in valid_configs:
+        raise GypError('Invalid config specified via --build: %s' % conf)
+    generator.PerformBuild(data, options.configs, params)
 
   # Done
   return 0

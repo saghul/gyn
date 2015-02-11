@@ -1581,6 +1581,7 @@ def CalculateVariables(default_variables, params):
   """Calculate additional variables for use in the build (called by gyp)."""
   global generator_additional_non_configuration_keys
   global generator_additional_path_sections
+  global generator_extra_sources_for_rules
   flavor = gyp.common.GetFlavor(params)
   if flavor == 'mac':
     default_variables.setdefault('OS', 'mac')
@@ -1590,16 +1591,33 @@ def CalculateVariables(default_variables, params):
     default_variables.setdefault('LIB_DIR',
                                  generator_default_variables['PRODUCT_DIR'])
 
-    # Copy additional generator configuration data from Xcode, which is shared
+    # Copy additional generator configuration data from Xcode, which was shared
     # by the Mac Ninja generator.
-    import gyp.generator.xcode as xcode_generator
-    generator_additional_non_configuration_keys = getattr(xcode_generator,
-        'generator_additional_non_configuration_keys', [])
-    generator_additional_path_sections = getattr(xcode_generator,
-        'generator_additional_path_sections', [])
-    global generator_extra_sources_for_rules
-    generator_extra_sources_for_rules = getattr(xcode_generator,
-        'generator_extra_sources_for_rules', [])
+    generator_additional_non_configuration_keys = [
+      'ios_app_extension',
+      'ios_watch_app',
+      'ios_watchkit_extension',
+      'mac_bundle',
+      'mac_bundle_resources',
+      'mac_framework_headers',
+      'mac_framework_private_headers',
+      'mac_xctest_bundle',
+      'xcode_create_dependents_test_runner',
+    ]
+
+    generator_additional_path_sections = [
+      'mac_bundle_resources',
+      'mac_framework_headers',
+      'mac_framework_private_headers',
+      # 'mac_framework_dirs', input already handles _dirs endings.
+    ]
+
+    generator_extra_sources_for_rules = [
+      'mac_bundle_resources',
+      'mac_framework_headers',
+      'mac_framework_private_headers',
+    ]
+
   elif flavor == 'win':
     exts = gyp.MSVSUtil.TARGET_TYPE_EXT
     default_variables.setdefault('OS', 'win')
@@ -1609,13 +1627,27 @@ def CalculateVariables(default_variables, params):
     default_variables['SHARED_LIB_PREFIX'] = ''
     default_variables['SHARED_LIB_SUFFIX'] = '.' + exts['shared_library']
 
-    # Copy additional generator configuration data from VS, which is shared
+    # Copy additional generator configuration data from VS, which was shared
     # by the Windows Ninja generator.
-    import gyp.generator.msvs as msvs_generator
-    generator_additional_non_configuration_keys = getattr(msvs_generator,
-        'generator_additional_non_configuration_keys', [])
-    generator_additional_path_sections = getattr(msvs_generator,
-        'generator_additional_path_sections', [])
+    generator_additional_non_configuration_keys = [
+      'msvs_cygwin_dirs',
+      'msvs_cygwin_shell',
+      'msvs_large_pdb',
+      'msvs_shard',
+      'msvs_external_builder',
+      'msvs_external_builder_out_dir',
+      'msvs_external_builder_build_cmd',
+      'msvs_external_builder_clean_cmd',
+      'msvs_external_builder_clcompile_cmd',
+      'msvs_enable_winrt',
+      'msvs_requires_importlibrary',
+      'msvs_enable_winphone',
+    ]
+
+    generator_additional_path_sections = [
+      'msvs_cygwin_dirs',
+      'msvs_props',
+    ]
 
     gyp.msvs_emulation.CalculateCommonVariables(default_variables, params)
   else:

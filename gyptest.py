@@ -148,14 +148,12 @@ def main(argv=None):
   if argv is None:
     argv = sys.argv
 
-  usage = "gyptest.py [-ahlnq] [-f formats] [test ...]"
+  usage = "gyptest.py [-ahlnq] [test ...]"
   parser = optparse.OptionParser(usage=usage)
   parser.add_option("-a", "--all", action="store_true",
             help="run all tests")
   parser.add_option("-C", "--chdir", action="store", default=None,
             help="chdir to the specified directory")
-  parser.add_option("-f", "--format", action="store", default='',
-            help="run tests with the specified formats")
   parser.add_option("-G", '--gyp_option', action="append", default=[],
             help="Add -G options to the gyp command line")
   parser.add_option("-l", "--list", action="store_true",
@@ -211,22 +209,7 @@ def main(argv=None):
   failed = []
   no_result = []
 
-  if opts.format:
-    format_list = opts.format.split(',')
-  else:
-    # TODO:  not duplicate this mapping from pylib/gyp/__init__.py
-    format_list = {
-      'aix5':     ['make'],
-      'freebsd7': ['make'],
-      'freebsd8': ['make'],
-      'openbsd5': ['make'],
-      'cygwin':   ['msvs'],
-      'win32':    ['msvs', 'ninja'],
-      'linux2':   ['make', 'ninja'],
-      'linux3':   ['make', 'ninja'],
-      'darwin':   ['make', 'ninja', 'xcode', 'xcode-ninja'],
-    }[sys.platform]
-
+  format_list = ['ninja']
   for format in format_list:
     os.environ['TESTGYP_FORMAT'] = format
     if not opts.quiet:
