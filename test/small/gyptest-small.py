@@ -24,11 +24,7 @@ sys.path.append(os.path.join(test._cwd, 'pylib'))
 
 # Add new test suites here.
 files_to_test = [
-    'pylib/gyp/MSVSSettings_test.py',
-    'pylib/gyp/easy_xml_test.py',
-    'pylib/gyp/generator/msvs_test.py',
     'pylib/gyp/generator/ninja_test.py',
-    'pylib/gyp/generator/xcode_test.py',
     'pylib/gyp/common_test.py',
     'pylib/gyp/input_test.py',
 ]
