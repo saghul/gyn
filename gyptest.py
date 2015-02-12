@@ -201,7 +201,8 @@ def main(argv=None):
   CommandRunner.active = not opts.no_exec
   cr = CommandRunner()
 
-  os.environ['PYTHONPATH'] = os.path.abspath('test/lib')
+  os.environ['PYTHONPATH'] = ':'.join((os.path.abspath('test/lib'),
+                                       os.path.abspath(os.curdir)))
   if not opts.quiet:
     sys.stdout.write('PYTHONPATH=%s\n' % os.environ['PYTHONPATH'])
 
