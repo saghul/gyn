@@ -6,16 +6,15 @@
 
 """Unit tests for the input.py file."""
 
-import gyp.input
+import gyn.input
 import unittest
-import sys
 
 
 class TestFindCycles(unittest.TestCase):
   def setUp(self):
     self.nodes = {}
     for x in ('a', 'b', 'c', 'd', 'e'):
-      self.nodes[x] = gyp.input.DependencyGraphNode(x)
+      self.nodes[x] = gyn.input.DependencyGraphNode(x)
 
   def _create_dependency(self, dependent, dependency):
     dependent.dependencies.append(dependency)

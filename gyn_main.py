@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 if __name__ == '__main__':
-  import gyp
+  import gyn
   import sys
 
-  sys.exit(gyp.script_main())
+  sys.exit(gyn.script_main())

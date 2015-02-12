@@ -12,16 +12,15 @@ import re
 import signal
 import subprocess
 import sys
-import gyp
-import gyp.common
-from gyp.common import OrderedSet
-import gyp.msvs_emulation
-import gyp.MSVSUtil as MSVSUtil
-import gyp.xcode_emulation
+import gyn
+import gyn.common
+import gyn.msvs_emulation
+import gyn.MSVSUtil as MSVSUtil
+import gyn.xcode_emulation
 from cStringIO import StringIO
 
-from gyp.common import GetEnvironFallback
-import gyp.ninja_syntax as ninja_syntax
+from gyn.common import GetEnvironFallback
+import gyn.ninja_syntax as ninja_syntax
 
 generator_default_variables = {
   'EXECUTABLE_PREFIX': '',
@@ -88,7 +87,7 @@ def QuoteShellArgument(arg, flavor):
   if re.match(r'^[a-zA-Z0-9_=.\\/-]+$', arg):
     return arg  # No quoting necessary.
   if flavor == 'win':
-    return gyp.msvs_emulation.QuoteForRspFile(arg)
+    return gyn.msvs_emulation.QuoteForRspFile(arg)
   return "'" + arg.replace("'", "'" + '"\'"' + "'")  + "'"
 
 
@@ -244,10 +243,10 @@ class NinjaWriter(object):
         self.win_env[arch] = 'environment.' + arch
 
     # Relative path from build output dir to base dir.
-    build_to_top = gyp.common.InvertRelativePath(build_dir, toplevel_dir)
+    build_to_top = gyn.common.InvertRelativePath(build_dir, toplevel_dir)
     self.build_to_base = os.path.join(build_to_top, base_dir)
     # Relative path from base dir to build dir.
-    base_to_top = gyp.common.InvertRelativePath(base_dir, toplevel_dir)
+    base_to_top = gyn.common.InvertRelativePath(base_dir, toplevel_dir)
     self.base_to_build = os.path.join(base_to_top, build_dir)
 
   def ExpandSpecial(self, path, product_dir=None):
@@ -299,9 +298,9 @@ class NinjaWriter(object):
     See the above discourse on path conversions."""
     if env:
       if self.flavor == 'mac':
-        path = gyp.xcode_emulation.ExpandEnvVars(path, env)
+        path = gyn.xcode_emulation.ExpandEnvVars(path, env)
       elif self.flavor == 'win':
-        path = gyp.msvs_emulation.ExpandMacros(path, env)
+        path = gyn.msvs_emulation.ExpandMacros(path, env)
     if path.startswith('$!'):
       expanded = self.ExpandSpecial(path)
       if self.flavor == 'win':
@@ -383,12 +382,12 @@ class NinjaWriter(object):
     # should be used for linking.
     self.uses_cpp = False
 
-    self.is_mac_bundle = gyp.xcode_emulation.IsMacBundle(self.flavor, spec)
+    self.is_mac_bundle = gyn.xcode_emulation.IsMacBundle(self.flavor, spec)
     self.xcode_settings = self.msvs_settings = None
     if self.flavor == 'mac':
-      self.xcode_settings = gyp.xcode_emulation.XcodeSettings(spec)
+      self.xcode_settings = gyn.xcode_emulation.XcodeSettings(spec)
     if self.flavor == 'win':
-      self.msvs_settings = gyp.msvs_emulation.MsvsSettings(spec,
+      self.msvs_settings = gyn.msvs_emulation.MsvsSettings(spec,
                                                            generator_flags)
       arch = self.msvs_settings.GetArch(config_name)
       self.ninja.variable('arch', self.win_env[arch])
@@ -458,13 +457,13 @@ class NinjaWriter(object):
 
       pch = None
       if self.flavor == 'win':
-        gyp.msvs_emulation.VerifyMissingSources(
+        gyn.msvs_emulation.VerifyMissingSources(
             sources, self.abs_build_dir, generator_flags, self.GypPathToNinja)
-        pch = gyp.msvs_emulation.PrecompiledHeader(
+        pch = gyn.msvs_emulation.PrecompiledHeader(
             self.msvs_settings, config_name, self.GypPathToNinja,
             self.GypPathToUniqueOutput, self.obj_ext)
       else:
-        pch = gyp.xcode_emulation.MacPrefixHeader(
+        pch = gyn.xcode_emulation.MacPrefixHeader(
             self.xcode_settings, self.GypPathToNinja,
             lambda path, lang: self.GypPathToUniqueOutput(path + '-' + lang))
       link_deps = self.WriteSources(
@@ -768,7 +767,7 @@ class NinjaWriter(object):
   def WriteMacBundleResources(self, resources, bundle_depends):
     """Writes ninja edges for 'mac_bundle_resources'."""
     xcassets = []
-    for output, res in gyp.xcode_emulation.GetMacBundleResources(
+    for output, res in gyn.xcode_emulation.GetMacBundleResources(
         generator_default_variables['PRODUCT_DIR'],
         self.xcode_settings, map(self.GypPathToNinja, resources)):
       output = self.ExpandSpecial(output)
@@ -828,7 +827,7 @@ class NinjaWriter(object):
 
   def WriteMacInfoPlist(self, partial_info_plist, bundle_depends):
     """Write build rules for bundle Info.plist files."""
-    info_plist, out, defines, extra_env = gyp.xcode_emulation.GetMacInfoPlist(
+    info_plist, out, defines, extra_env = gyn.xcode_emulation.GetMacInfoPlist(
         generator_default_variables['PRODUCT_DIR'],
         self.xcode_settings, self.GypPathToNinja)
     if not info_plist:
@@ -1168,7 +1167,7 @@ class NinjaWriter(object):
         ldflags.append(r'-Wl,-rpath=\$$ORIGIN/%s' % rpath)
         ldflags.append('-Wl,-rpath-link=%s' % rpath)
     self.WriteVariableList(ninja_file, 'ldflags',
-                           gyp.common.uniquer(map(self.ExpandSpecial, ldflags)))
+                           gyn.common.uniquer(map(self.ExpandSpecial, ldflags)))
 
     library_dirs = config.get('library_dirs', [])
     if self.flavor == 'win':
@@ -1182,7 +1181,7 @@ class NinjaWriter(object):
                                          self.flavor)
                       for l in library_dirs]
 
-    libraries = gyp.common.uniquer(map(self.ExpandSpecial,
+    libraries = gyn.common.uniquer(map(self.ExpandSpecial,
                                        spec.get('libraries', [])))
     if self.flavor == 'mac':
       libraries = self.xcode_settings.AdjustLibraries(libraries, config_name)
@@ -1196,7 +1195,7 @@ class NinjaWriter(object):
     if command in ('solink', 'solink_module'):
       extra_bindings.append(('soname', os.path.split(output)[1]))
       extra_bindings.append(('lib',
-                            gyp.common.EncodePOSIXShellArgument(output)))
+                            gyn.common.EncodePOSIXShellArgument(output)))
       if self.flavor != 'win':
         link_file_list = output
         if self.is_mac_bundle:
@@ -1213,7 +1212,7 @@ class NinjaWriter(object):
         link_file_list = link_file_list.replace(' ', '_')
         extra_bindings.append(
           ('link_file_list',
-            gyp.common.EncodePOSIXShellArgument(link_file_list)))
+            gyn.common.EncodePOSIXShellArgument(link_file_list)))
       if self.flavor == 'win':
         extra_bindings.append(('binary', output))
         if ('/NOENTRY' not in ldflags and
@@ -1239,7 +1238,7 @@ class NinjaWriter(object):
 
 
     if len(solibs):
-      extra_bindings.append(('solibs', gyp.common.EncodePOSIXShellList(solibs)))
+      extra_bindings.append(('solibs', gyn.common.EncodePOSIXShellList(solibs)))
 
     ninja_file.build(output, command + command_suffix, link_deps,
                      implicit=list(implicit_deps),
@@ -1333,7 +1332,7 @@ class NinjaWriter(object):
     """Returns the variables Xcode would set for build steps."""
     assert self.abs_build_dir
     abs_build_dir = self.abs_build_dir
-    return gyp.xcode_emulation.GetSortedXcodeEnv(
+    return gyn.xcode_emulation.GetSortedXcodeEnv(
         self.xcode_settings, abs_build_dir,
         os.path.join(abs_build_dir, self.build_to_base), self.config_name,
         additional_settings)
@@ -1363,7 +1362,7 @@ class NinjaWriter(object):
     if not self.xcode_settings or spec['type'] == 'none' or not output:
       return ''
     output = QuoteShellArgument(output, self.flavor)
-    postbuilds = gyp.xcode_emulation.GetSpecPostbuildCommands(spec, quiet=True)
+    postbuilds = gyn.xcode_emulation.GetSpecPostbuildCommands(spec, quiet=True)
     if output_binary is not None:
       postbuilds = self.xcode_settings.AddImplicitPostbuilds(
           self.config_name,
@@ -1377,7 +1376,7 @@ class NinjaWriter(object):
       return ''
     # Postbuilds expect to be run in the gyp file's directory, so insert an
     # implicit postbuild to cd to there.
-    postbuilds.insert(0, gyp.common.EncodePOSIXShellList(
+    postbuilds.insert(0, gyn.common.EncodePOSIXShellList(
         ['cd', self.build_to_base]))
     env = self.ComputeExportEnvString(self.GetSortedXcodePostbuildEnv())
     # G will be non-null if any postbuild fails. Run all postbuilds in a
@@ -1399,7 +1398,7 @@ class NinjaWriter(object):
     export_str = []
     for k, v in env:
       export_str.append('export %s=%s;' %
-          (k, ninja_syntax.escape(gyp.common.EncodePOSIXShellArgument(v))))
+          (k, ninja_syntax.escape(gyn.common.EncodePOSIXShellArgument(v))))
     return ' '.join(export_str)
 
   def ComputeMacBundleOutput(self):
@@ -1525,8 +1524,8 @@ class NinjaWriter(object):
           description, config=self.config_name)
     elif self.flavor == 'mac':
       # |env| is an empty list on non-mac.
-      args = [gyp.xcode_emulation.ExpandEnvVars(arg, env) for arg in args]
-      description = gyp.xcode_emulation.ExpandEnvVars(description, env)
+      args = [gyn.xcode_emulation.ExpandEnvVars(arg, env) for arg in args]
+      description = gyn.xcode_emulation.ExpandEnvVars(description, env)
 
     # TODO: we shouldn't need to qualify names; we do it because
     # currently the ninja rule namespace is global, but it really
@@ -1558,12 +1557,12 @@ class NinjaWriter(object):
         rspfile_content = self.msvs_settings.BuildCygwinBashCommandLine(
             args, self.build_to_base)
       else:
-        rspfile_content = gyp.msvs_emulation.EncodeRspFileList(args)
+        rspfile_content = gyn.msvs_emulation.EncodeRspFileList(args)
       command = ('%s gyp-win-tool action-wrapper $arch ' % sys.executable +
                  rspfile + run_in)
     else:
       env = self.ComputeExportEnvString(env)
-      command = gyp.common.EncodePOSIXShellList(args)
+      command = gyn.common.EncodePOSIXShellList(args)
       command = 'cd %s; ' % self.build_to_base + env + command
 
     # GYP rules/actions express being no-ops by not touching their outputs.
@@ -1582,7 +1581,7 @@ def CalculateVariables(default_variables, params):
   global generator_additional_non_configuration_keys
   global generator_additional_path_sections
   global generator_extra_sources_for_rules
-  flavor = gyp.common.GetFlavor(params)
+  flavor = gyn.common.GetFlavor(params)
   if flavor == 'mac':
     default_variables.setdefault('OS', 'mac')
     default_variables.setdefault('SHARED_LIB_SUFFIX', '.dylib')
@@ -1619,7 +1618,7 @@ def CalculateVariables(default_variables, params):
     ]
 
   elif flavor == 'win':
-    exts = gyp.MSVSUtil.TARGET_TYPE_EXT
+    exts = gyn.MSVSUtil.TARGET_TYPE_EXT
     default_variables.setdefault('OS', 'win')
     default_variables['EXECUTABLE_SUFFIX'] = '.' + exts['executable']
     default_variables['STATIC_LIB_PREFIX'] = ''
@@ -1649,7 +1648,7 @@ def CalculateVariables(default_variables, params):
       'msvs_props',
     ]
 
-    gyp.msvs_emulation.CalculateCommonVariables(default_variables, params)
+    gyn.msvs_emulation.CalculateCommonVariables(default_variables, params)
   else:
     operating_system = flavor
     if flavor == 'android':
@@ -1690,7 +1689,7 @@ def CalculateGeneratorInputInfo(params):
 
 def OpenOutput(path, mode='w'):
   """Open |path| for writing, creating directories if necessary."""
-  gyp.common.EnsureDirExists(path)
+  gyn.common.EnsureDirExists(path)
   return open(path, mode)
 
 
@@ -1812,7 +1811,7 @@ def _AddWinLinkRules(master_ninja, embed_manifest):
 def GenerateOutputForConfig(target_list, target_dicts, data, params,
                             config_name):
   options = params['options']
-  flavor = gyp.common.GetFlavor(params)
+  flavor = gyn.common.GetFlavor(params)
   generator_flags = params.get('generator_flags', {})
 
   # build_dir: relative path from source root to our output files.
@@ -1826,7 +1825,7 @@ def GenerateOutputForConfig(target_list, target_dicts, data, params,
   master_ninja = ninja_syntax.Writer(master_ninja_file, width=120)
 
   # Put build-time support tools in out/{config_name}.
-  gyp.common.CopyTool(flavor, toplevel_build)
+  gyn.common.CopyTool(flavor, toplevel_build)
 
   # Grab make settings for CC/CXX.
   # The rules are
@@ -1863,9 +1862,9 @@ def GenerateOutputForConfig(target_list, target_dicts, data, params,
   readelf = 'readelf'
   readelf_host = 'readelf'
 
-  build_file, _, _ = gyp.common.ParseQualifiedTarget(target_list[0])
+  build_file, _, _ = gyn.common.ParseQualifiedTarget(target_list[0])
   make_global_settings = data[build_file].get('make_global_settings', [])
-  build_to_root = gyp.common.InvertRelativePath(build_dir,
+  build_to_root = gyn.common.InvertRelativePath(build_dir,
                                                 options.toplevel_dir)
   wrappers = {}
   for key, value in make_global_settings:
@@ -1913,9 +1912,9 @@ def GenerateOutputForConfig(target_list, target_dicts, data, params,
     shared_system_includes = None
     if not generator_flags.get('ninja_use_custom_environment_files', 0):
       shared_system_includes = \
-          gyp.msvs_emulation.ExtractSharedMSVSSystemIncludes(
+          gyn.msvs_emulation.ExtractSharedMSVSSystemIncludes(
               configs, generator_flags)
-    cl_paths = gyp.msvs_emulation.GenerateEnvironmentFiles(
+    cl_paths = gyn.msvs_emulation.GenerateEnvironmentFiles(
         toplevel_build, generator_flags, shared_system_includes, OpenOutput)
     for arch, path in cl_paths.iteritems():
       if clang_cl:
@@ -2271,7 +2270,7 @@ def GenerateOutputForConfig(target_list, target_dicts, data, params,
 
   all_targets = set()
   for build_file in params['build_files']:
-    for target in gyp.common.AllTargets(target_list,
+    for target in gyn.common.AllTargets(target_list,
                                         target_dicts,
                                         os.path.normpath(build_file)):
       all_targets.add(target)
@@ -2295,7 +2294,7 @@ def GenerateOutputForConfig(target_list, target_dicts, data, params,
   for qualified_target in target_list:
     # qualified_target is like: third_party/icu/icu.gyp:icui18n#target
     build_file, name, toolset = \
-        gyp.common.ParseQualifiedTarget(qualified_target)
+        gyn.common.ParseQualifiedTarget(qualified_target)
 
     this_make_global_settings = data[build_file].get('make_global_settings', [])
     assert make_global_settings == this_make_global_settings, (
@@ -2304,11 +2303,11 @@ def GenerateOutputForConfig(target_list, target_dicts, data, params,
 
     spec = target_dicts[qualified_target]
     if flavor == 'mac':
-      gyp.xcode_emulation.MergeGlobalXcodeSettingsToSpec(data[build_file], spec)
+      gyn.xcode_emulation.MergeGlobalXcodeSettingsToSpec(data[build_file], spec)
 
-    build_file = gyp.common.RelativePath(build_file, options.toplevel_dir)
+    build_file = gyn.common.RelativePath(build_file, options.toplevel_dir)
 
-    qualified_target_for_hash = gyp.common.QualifiedTarget(build_file, name,
+    qualified_target_for_hash = gyn.common.QualifiedTarget(build_file, name,
                                                            toolset)
     hash_for_rules = hashlib.md5(qualified_target_for_hash).hexdigest()
 
@@ -2391,11 +2390,11 @@ def CallGenerateOutputForConfig(arglist):
 
 def GenerateOutput(target_list, target_dicts, data, params):
   # Update target_dicts for iOS device builds.
-  target_dicts = gyp.xcode_emulation.CloneConfigurationForDeviceAndEmulator(
+  target_dicts = gyn.xcode_emulation.CloneConfigurationForDeviceAndEmulator(
       target_dicts)
 
   user_config = params.get('generator_flags', {}).get('config', None)
-  if gyp.common.GetFlavor(params) == 'win':
+  if gyn.common.GetFlavor(params) == 'win':
     target_list, target_dicts = MSVSUtil.ShardTargets(target_list, target_dicts)
     target_list, target_dicts = MSVSUtil.InsertLargePdbShims(
         target_list, target_dicts, generator_default_variables)

@@ -5,7 +5,7 @@
 # found in the LICENSE file.
 
 __doc__ = """
-gyptest.py -- test runner for GYP tests.
+tests.py -- test runner for GYP tests.
 """
 
 import os
@@ -148,7 +148,7 @@ def main(argv=None):
   if argv is None:
     argv = sys.argv
 
-  usage = "gyptest.py [-ahlnq] [test ...]"
+  usage = "tests.py [-ahlnq] [test ...]"
   parser = optparse.OptionParser(usage=usage)
   parser.add_option("-a", "--all", action="store_true",
             help="run all tests")

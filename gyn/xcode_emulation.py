@@ -8,15 +8,14 @@ other build systems, such as make and ninja.
 """
 
 import copy
-import gyp.common
+import gyn.common
 import os
 import os.path
 import re
 import shlex
 import subprocess
 import sys
-import tempfile
-from gyp.common import GypError
+from gyn.common import GypError
 
 # Populated lazily by XcodeVersion, for efficiency, and to fix an issue when
 # "xcodebuild" is called too quickly (it has been found to return incorrect
@@ -162,7 +161,7 @@ class XcodeSettings(object):
 
     self.isIOS = False
 
-    # Per-target 'xcode_settings' are pushed down into configs earlier by gyp.
+    # Per-target 'xcode_settings' are pushed down into configs earlier by gyn.
     # This means self.xcode_settings[config] always contains all settings
     # for that config -- the per-target settings as well. Settings that are
     # the same for all configs are implicitly per-target settings.
@@ -1537,10 +1536,10 @@ def _TopologicallySortedEnvVarKeys(env):
     # Topologically sort, and then reverse, because we used an edge definition
     # that's inverted from the expected result of this function (see comment
     # above).
-    order = gyp.common.TopologicallySorted(env.keys(), GetEdges)
+    order = gyn.common.TopologicallySorted(env.keys(), GetEdges)
     order.reverse()
     return order
-  except gyp.common.CycleError, e:
+  except gyn.common.CycleError, e:
     raise GypError(
         'Xcode environment variables are cyclically dependent: ' + str(e.nodes))
 
@@ -1560,7 +1559,7 @@ def GetSpecPostbuildCommands(spec, quiet=False):
     if not quiet:
       postbuilds.append('echo POSTBUILD\\(%s\\) %s' % (
             spec['target_name'], postbuild['postbuild_name']))
-    postbuilds.append(gyp.common.EncodePOSIXShellList(postbuild['action']))
+    postbuilds.append(gyn.common.EncodePOSIXShellList(postbuild['action']))
   return postbuilds
 
 

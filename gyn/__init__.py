@@ -5,15 +5,14 @@
 # found in the LICENSE file.
 
 import copy
-import gyp.input
+import gyn.input
 import optparse
 import os.path
-import re
 import shlex
 import sys
 import traceback
-from gyp.common import GypError
-from gyp.generator import ninja
+from gyn.common import GypError
+from gyn.generator import ninja
 
 # Default debug modes for GYP
 debug = {}
@@ -25,7 +24,7 @@ DEBUG_INCLUDES = 'includes'
 
 
 def DebugOutput(mode, message, *args):
-  if 'all' in gyp.debug or mode in gyp.debug:
+  if 'all' in gyn.debug or mode in gyn.debug:
     ctx = ('unknown', 0, 'unknown')
     try:
       f = traceback.extract_stack(limit=2)
@@ -101,7 +100,7 @@ def Load(build_files, default_variables={},
   }
 
   # Process the input specific to this generator.
-  result = gyp.input.Load(build_files, default_variables, includes[:],
+  result = gyn.input.Load(build_files, default_variables, includes[:],
                           depth, generator_input_info, check, circular_check,
                           params['parallel'], params['root_targets'])
   return [generator] + result
@@ -172,7 +171,7 @@ def RegenerateFlags(options):
   set that as appropriate.
   """
   def FixPath(path):
-    path = gyp.common.FixIfRelativePath(path, options.depth)
+    path = gyn.common.FixIfRelativePath(path, options.depth)
     if not path:
       return os.path.curdir
     return path
@@ -268,7 +267,7 @@ def gyp_main(args):
                     'include.gypi.')
   parser.add_option('-d', '--debug', dest='debug', metavar='DEBUGMODE',
                     action='append', default=[], help='turn on a debugging '
-                    'mode for debugging GYP.  Supported modes are "variables", '
+                    'mode for debugging gyn.  Supported modes are "variables", '
                     '"includes" and "general" or "all" for all of them.')
   parser.add_option('-D', dest='defines', action='append', metavar='VAR=VAL',
                     env_name='GYP_DEFINES',
@@ -347,10 +346,10 @@ def gyp_main(args):
   options.parallel = not options.no_parallel
 
   for mode in options.debug:
-    gyp.debug[mode] = 1
+    gyn.debug[mode] = 1
 
   # Do an extra check to avoid work when we're not debugging.
-  if DEBUG_GENERAL in gyp.debug:
+  if DEBUG_GENERAL in gyn.debug:
     DebugOutput(DEBUG_GENERAL, 'running with these options:')
     for option, value in sorted(options.__dict__.items()):
       if option[0] == '_':
@@ -408,7 +407,7 @@ def gyp_main(args):
   if options.defines:
     defines += options.defines
   cmdline_default_variables = NameValueListToDict(defines)
-  if DEBUG_GENERAL in gyp.debug:
+  if DEBUG_GENERAL in gyn.debug:
     DebugOutput(DEBUG_GENERAL,
                 "cmdline_default_variables: %s", cmdline_default_variables)
 
@@ -435,7 +434,7 @@ def gyp_main(args):
   if options.generator_flags:
     gen_flags += options.generator_flags
   generator_flags = NameValueListToDict(gen_flags)
-  if DEBUG_GENERAL in gyp.debug.keys():
+  if DEBUG_GENERAL in gyn.debug.keys():
     DebugOutput(DEBUG_GENERAL, "generator_flags: %s", generator_flags)
 
   params = {'options': options,

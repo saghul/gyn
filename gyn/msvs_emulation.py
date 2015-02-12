@@ -12,9 +12,9 @@ import re
 import subprocess
 import sys
 
-from gyp.common import OrderedSet
-import gyp.MSVSUtil
-import gyp.MSVSVersion
+from gyn.common import OrderedSet
+import gyn.MSVSUtil
+import gyn.MSVSVersion
 
 
 windows_quoter_regex = re.compile(r'(\\*)"')
@@ -232,7 +232,7 @@ class MsvsSettings(object):
     ext = self.spec.get('product_extension', None)
     if ext:
       return ext
-    return gyp.MSVSUtil.TARGET_TYPE_EXT.get(self.spec['type'], '')
+    return gyn.MSVSUtil.TARGET_TYPE_EXT.get(self.spec['type'], '')
 
   def GetVSMacroEnv(self, base_to_build=None, config=None):
     """Get a dict of variables mapping internal VS macro names to their gyp
@@ -720,8 +720,8 @@ class MsvsSettings(object):
     # have changed so that simply regenerating the project files doesn't
     # cause a relink.
     build_dir_generated_name = os.path.join(build_dir, generated_name)
-    gyp.common.EnsureDirExists(build_dir_generated_name)
-    f = gyp.common.WriteOnDiff(build_dir_generated_name)
+    gyn.common.EnsureDirExists(build_dir_generated_name)
+    f = gyn.common.WriteOnDiff(build_dir_generated_name)
     f.write(generated_manifest_contents)
     f.close()
     manifest_files = [generated_name]
@@ -918,7 +918,7 @@ vs_version = None
 def GetVSVersion(generator_flags):
   global vs_version
   if not vs_version:
-    vs_version = gyp.MSVSVersion.SelectVisualStudioVersion(
+    vs_version = gyn.MSVSVersion.SelectVisualStudioVersion(
         generator_flags.get('msvs_version', 'auto'),
         allow_fallback=False)
   return vs_version
@@ -1021,7 +1021,7 @@ def GenerateEnvironmentFiles(toplevel_build_dir, generator_flags,
     variables, _ = popen.communicate()
     env = _ExtractImportantEnvironment(variables)
 
-    # Inject system includes from gyp files into INCLUDE.
+    # Inject system includes from gyn files into INCLUDE.
     if system_includes:
       system_includes = system_includes | OrderedSet(
                                               env.get('INCLUDE', '').split(';'))
@@ -1063,7 +1063,7 @@ def CalculateCommonVariables(default_variables, params):
   generator_flags = params.get('generator_flags', {})
 
   # Set a variable so conditions can be based on msvs_version.
-  msvs_version = gyp.msvs_emulation.GetVSVersion(generator_flags)
+  msvs_version = gyn.msvs_emulation.GetVSVersion(generator_flags)
   default_variables['MSVS_VERSION'] = msvs_version.ShortName()
 
   # To determine processor word size on Windows, in addition to checking

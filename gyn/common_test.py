@@ -6,7 +6,7 @@
 
 """Unit tests for the common.py file."""
 
-import gyp.common
+import gyn.common
 import unittest
 import sys
 
@@ -23,7 +23,7 @@ class TestTopologicallySorted(unittest.TestCase):
     def GetEdge(node):
       return tuple(graph[node])
     self.assertEqual(
-      gyp.common.TopologicallySorted(graph.keys(), GetEdge),
+      gyn.common.TopologicallySorted(graph.keys(), GetEdge),
       ['a', 'c', 'd', 'b'])
 
   def test_Cycle(self):
@@ -37,12 +37,12 @@ class TestTopologicallySorted(unittest.TestCase):
     def GetEdge(node):
       return tuple(graph[node])
     self.assertRaises(
-      gyp.common.CycleError, gyp.common.TopologicallySorted,
+      gyn.common.CycleError, gyn.common.TopologicallySorted,
       graph.keys(), GetEdge)
 
 
 class TestGetFlavor(unittest.TestCase):
-  """Test that gyp.common.GetFlavor works as intended"""
+  """Test that gyn.common.GetFlavor works as intended"""
   original_platform = ''
 
   def setUp(self):
@@ -53,7 +53,7 @@ class TestGetFlavor(unittest.TestCase):
 
   def assertFlavor(self, expected, argument, param):
     sys.platform = argument
-    self.assertEqual(expected, gyp.common.GetFlavor(param))
+    self.assertEqual(expected, gyn.common.GetFlavor(param))
 
   def test_platform_default(self):
     self.assertFlavor('freebsd', 'freebsd9' , {})

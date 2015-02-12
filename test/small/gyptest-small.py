@@ -20,9 +20,9 @@ test = TestGyp.TestGyp()
 
 # Add new test suites here.
 files_to_test = [
-    'gyp/generator/ninja_test.py',
-    'gyp/common_test.py',
-    'gyp/input_test.py',
+    'gyn/generator/ninja_test.py',
+    'gyn/common_test.py',
+    'gyn/input_test.py',
 ]
 
 # Collect all the suites from the above files.

@@ -103,9 +103,9 @@ class TestGypBase(TestCommon.TestCommon):
       gyp = os.environ.get('TESTGYP_GYP')
       if not gyp:
         if sys.platform == 'win32':
-          gyp = 'gyp-run.bat'
+          gyp = 'gyn-run.bat'
         else:
-          gyp = 'gyp-run'
+          gyp = 'gyn-run'
     self.gyp = os.path.abspath(gyp)
     self.no_parallel = False
 
