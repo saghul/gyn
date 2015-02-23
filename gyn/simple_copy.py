@@ -7,6 +7,17 @@ structures or complex types except for dicts and lists. This is
 because gyp copies so large structure that small copy overhead ends up
 taking seconds in a project the size of Chromium."""
 
+import sys
+
+PY3 = sys.version_info[0] == 3
+if PY3:
+    integer_types = (int, )
+    string_types = (str, )
+else:
+    integer_types = (int, long)
+    string_types = (str, unicode)
+
+
 class Error(Exception):
   pass
 
@@ -28,8 +39,7 @@ _deepcopy_dispatch = d = {}
 def _deepcopy_atomic(x):
   return x
 
-for x in (type(None), int, long, float,
-          bool, str, unicode, type):
+for x in (type(None), float, bool, type) + integer_types + string_types:
   d[x] = _deepcopy_atomic
 
 def _deepcopy_list(x):
@@ -38,7 +48,7 @@ d[list] = _deepcopy_list
 
 def _deepcopy_dict(x):
   y = {}
-  for key, value in x.iteritems():
+  for key, value in x.items():
     y[deepcopy(key)] = deepcopy(value)
   return y
 d[dict] = _deepcopy_dict

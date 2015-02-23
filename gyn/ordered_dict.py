@@ -29,10 +29,19 @@
 # Backport of OrderedDict() class that runs on Python 2.4, 2.5, 2.6, 2.7 and pypy.
 # Passes Python2.7's test suite and incorporates all the latest updates.
 
-try:
-    from thread import get_ident as _get_ident
-except ImportError:
-    from dummy_thread import get_ident as _get_ident
+import sys
+
+PY3 = sys.version_info[0] == 3
+if PY3:
+    try:
+        from _thread import get_ident as _get_ident
+    except ImportError:
+        from _dummy_thread import get_ident as _get_ident
+else:
+    try:
+        from thread import get_ident as _get_ident
+    except ImportError:
+        from dummy_thread import get_ident as _get_ident
 
 try:
     from _abcoll import KeysView, ValuesView, ItemsView
@@ -106,7 +115,7 @@ class OrderedDict(dict):
     def clear(self):
         'od.clear() -> None.  Remove all items from od.'
         try:
-            for node in self.__map.itervalues():
+            for node in self.__map.values():
                 del node[:]
             root = self.__root
             root[:] = [root, root, None]
@@ -191,12 +200,12 @@ class OrderedDict(dict):
             for key in other:
                 self[key] = other[key]
         elif hasattr(other, 'keys'):
-            for key in other.keys():
+            for key in list(other.keys()):
                 self[key] = other[key]
         else:
             for key, value in other:
                 self[key] = value
-        for key, value in kwds.items():
+        for key, value in list(kwds.items()):
             self[key] = value
 
     __update = update  # let subclasses override update without breaking __init__
@@ -232,7 +241,7 @@ class OrderedDict(dict):
         try:
             if not self:
                 return '%s()' % (self.__class__.__name__,)
-            return '%s(%r)' % (self.__class__.__name__, self.items())
+            return '%s(%r)' % (self.__class__.__name__, list(self.items()))
         finally:
             del _repr_running[call_key]
 
@@ -267,7 +276,7 @@ class OrderedDict(dict):
 
         '''
         if isinstance(other, OrderedDict):
-            return len(self)==len(other) and self.items() == other.items()
+            return len(self)==len(other) and list(self.items()) == list(other.items())
         return dict.__eq__(self, other)
 
     def __ne__(self, other):

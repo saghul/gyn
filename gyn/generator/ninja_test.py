@@ -8,9 +8,7 @@
 
 import gyn.generator.ninja as ninja
 import unittest
-import StringIO
 import sys
-import TestCommon
 
 
 class TestPrefixesAndSuffixes(unittest.TestCase):
